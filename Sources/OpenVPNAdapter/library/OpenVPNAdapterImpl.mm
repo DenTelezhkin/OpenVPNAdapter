@@ -28,6 +28,7 @@
 #import "OpenVPNSessionToken+Internal.h"
 #import "OpenVPNTransportStats+Internal.h"
 #import "NSError+OpenVPNError.h"
+#import "ovpncli.hpp"
 
 @interface OpenVPNAdapter () <OpenVPNClientDelegate>
 
@@ -51,8 +52,8 @@
 #pragma mark - OpenVPNClient Lifecycle
 
 + (nullable OpenVPNConfigurationEvaluation *)evaluateConfiguration:(OpenVPNConfiguration *)configuration error:(NSError **)error {
-    ClientAPI::EvalConfig eval = OpenVPNClient::eval_config_static(configuration.config);
-    
+    ClientAPI::OpenVPNClientHelper clihelper;
+    const ClientAPI::EvalConfig eval = clihelper.eval_config(configuration.config);
     if (eval.error) {
         if (error) {
             NSString *message = [NSString stringWithUTF8String:eval.message.c_str()];
@@ -152,11 +153,11 @@
 #pragma mark - OpenVPNClient Information
 
 + (NSString *)copyright {
-    return [NSString stringWithUTF8String:OpenVPNClient::copyright().c_str()];
+    return [NSString stringWithUTF8String:openvpn::ClientAPI::OpenVPNClientHelper::copyright().c_str()];
 }
 
 + (NSString *)platform {
-    return [NSString stringWithUTF8String:OpenVPNClient::platform().c_str()];
+    return [NSString stringWithUTF8String:openvpn::ClientAPI::OpenVPNClientHelper::platform().c_str()];
 }
 
 - (OpenVPNConnectionInfo *)connectionInformation {

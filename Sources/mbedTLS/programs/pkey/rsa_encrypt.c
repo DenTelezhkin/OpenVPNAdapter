@@ -1,7 +1,7 @@
 /*
  *  RSA simple data encryption program
  *
- *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
+ *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -15,8 +15,6 @@
  *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 
 #if !defined(MBEDTLS_CONFIG_FILE)
@@ -25,17 +23,7 @@
 #include MBEDTLS_CONFIG_FILE
 #endif
 
-#if defined(MBEDTLS_PLATFORM_C)
 #include "mbedtls/platform.h"
-#else
-#include <stdio.h>
-#include <stdlib.h>
-#define mbedtls_fprintf         fprintf
-#define mbedtls_printf          printf
-#define mbedtls_exit            exit
-#define MBEDTLS_EXIT_SUCCESS    EXIT_SUCCESS
-#define MBEDTLS_EXIT_FAILURE    EXIT_FAILURE
-#endif /* MBEDTLS_PLATFORM_C */
 
 #if defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_RSA_C) && \
     defined(MBEDTLS_ENTROPY_C) && defined(MBEDTLS_FS_IO) && \
@@ -55,9 +43,11 @@ int main( void )
     mbedtls_printf("MBEDTLS_BIGNUM_C and/or MBEDTLS_RSA_C and/or "
            "MBEDTLS_ENTROPY_C and/or MBEDTLS_FS_IO and/or "
            "MBEDTLS_CTR_DRBG_C not defined.\n");
-    return( 0 );
+    mbedtls_exit( 0 );
 }
 #else
+
+
 int main( int argc, char *argv[] )
 {
     FILE *f;
@@ -182,7 +172,7 @@ exit:
     fflush( stdout ); getchar();
 #endif
 
-    return( exit_code );
+    mbedtls_exit( exit_code );
 }
 #endif /* MBEDTLS_BIGNUM_C && MBEDTLS_RSA_C && MBEDTLS_ENTROPY_C &&
           MBEDTLS_FS_IO && MBEDTLS_CTR_DRBG_C */

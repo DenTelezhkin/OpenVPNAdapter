@@ -139,15 +139,6 @@ typedef NS_ENUM(NSInteger, OpenVPNTLSCertProfile);
 @property (nonatomic) NSInteger keyDirection;
 
 /**
- If YES, force ciphersuite to be one of:
- 1. TLS_DHE_RSA_WITH_AES_256_CBC_SHA, or
- 2. TLS_DHE_RSA_WITH_AES_128_CBC_SHA
- and disable setting TLS minimum version.
- This is intended for compatibility with legacy systems.
- */
-@property (nonatomic) BOOL forceCiphersuitesAESCBC;
-
-/**
  Override the minimum TLS version
  */
 @property (nonatomic) OpenVPNMinTLSVersion minTLSVersion;

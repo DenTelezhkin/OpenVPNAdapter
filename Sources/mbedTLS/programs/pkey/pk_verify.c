@@ -1,7 +1,7 @@
 /*
  *  Public key-based signature verification program
  *
- *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
+ *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -15,8 +15,6 @@
  *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 
 #if !defined(MBEDTLS_CONFIG_FILE)
@@ -25,16 +23,7 @@
 #include MBEDTLS_CONFIG_FILE
 #endif
 
-#if defined(MBEDTLS_PLATFORM_C)
 #include "mbedtls/platform.h"
-#else
-#include <stdio.h>
-#include <stdlib.h>
-#define mbedtls_snprintf        snprintf
-#define mbedtls_printf          printf
-#define MBEDTLS_EXIT_SUCCESS    EXIT_SUCCESS
-#define MBEDTLS_EXIT_FAILURE    EXIT_FAILURE
-#endif /* MBEDTLS_PLATFORM_C */
 
 #if !defined(MBEDTLS_BIGNUM_C) || !defined(MBEDTLS_MD_C) || \
     !defined(MBEDTLS_SHA256_C) || !defined(MBEDTLS_PK_PARSE_C) ||   \
@@ -44,7 +33,7 @@ int main( void )
     mbedtls_printf("MBEDTLS_BIGNUM_C and/or MBEDTLS_MD_C and/or "
            "MBEDTLS_SHA256_C and/or MBEDTLS_PK_PARSE_C and/or "
            "MBEDTLS_FS_IO not defined.\n");
-    return( 0 );
+    mbedtls_exit( 0 );
 }
 #else
 
@@ -55,6 +44,7 @@ int main( void )
 #include <stdio.h>
 #include <string.h>
 
+
 int main( int argc, char *argv[] )
 {
     FILE *f;
@@ -63,7 +53,7 @@ int main( int argc, char *argv[] )
     size_t i;
     mbedtls_pk_context pk;
     unsigned char hash[32];
-    unsigned char buf[MBEDTLS_MPI_MAX_SIZE];
+    unsigned char buf[MBEDTLS_PK_SIGNATURE_MAX_SIZE];
     char filename[512];
 
     mbedtls_pk_init( &pk );
@@ -84,7 +74,7 @@ int main( int argc, char *argv[] )
 
     if( ( ret = mbedtls_pk_parse_public_keyfile( &pk, argv[1] ) ) != 0 )
     {
-        mbedtls_printf( " failed\n  ! mbedtls_pk_parse_public_keyfile returned -0x%04x\n", -ret );
+        mbedtls_printf( " failed\n  ! mbedtls_pk_parse_public_keyfile returned -0x%04x\n", (unsigned int) -ret );
         goto exit;
     }
 
@@ -98,7 +88,6 @@ int main( int argc, char *argv[] )
         mbedtls_printf( "\n  ! Could not open %s\n\n", filename );
         goto exit;
     }
-
 
     i = fread( buf, 1, sizeof(buf), f );
 
@@ -122,7 +111,7 @@ int main( int argc, char *argv[] )
     if( ( ret = mbedtls_pk_verify( &pk, MBEDTLS_MD_SHA256, hash, 0,
                            buf, i ) ) != 0 )
     {
-        mbedtls_printf( " failed\n  ! mbedtls_pk_verify returned -0x%04x\n", -ret );
+        mbedtls_printf( " failed\n  ! mbedtls_pk_verify returned -0x%04x\n", (unsigned int) -ret );
         goto exit;
     }
 
@@ -146,7 +135,7 @@ exit:
     fflush( stdout ); getchar();
 #endif
 
-    return( exit_code );
+    mbedtls_exit( exit_code );
 }
 #endif /* MBEDTLS_BIGNUM_C && MBEDTLS_SHA256_C &&
           MBEDTLS_PK_PARSE_C && MBEDTLS_FS_IO */

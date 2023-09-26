@@ -8,7 +8,7 @@
  * Deterministic Random Bit Generators</em>.
  */
 /*
- *  Copyright (C) 2006-2019, ARM Limited, All Rights Reserved
+ *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -22,31 +22,33 @@
  *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 #ifndef MBEDTLS_HMAC_DRBG_H
 #define MBEDTLS_HMAC_DRBG_H
 
 #if !defined(MBEDTLS_CONFIG_FILE)
-#include "config.h"
+#include "mbedtls/config.h"
 #else
 #include MBEDTLS_CONFIG_FILE
 #endif
 
-#include "md.h"
+#include "mbedtls/md.h"
 
 #if defined(MBEDTLS_THREADING_C)
-#include "threading.h"
+#include "mbedtls/threading.h"
 #endif
 
 /*
  * Error codes
  */
-#define MBEDTLS_ERR_HMAC_DRBG_REQUEST_TOO_BIG              -0x0003  /**< Too many random requested in single call. */
-#define MBEDTLS_ERR_HMAC_DRBG_INPUT_TOO_BIG                -0x0005  /**< Input too large (Entropy + additional). */
-#define MBEDTLS_ERR_HMAC_DRBG_FILE_IO_ERROR                -0x0007  /**< Read/write error in file. */
-#define MBEDTLS_ERR_HMAC_DRBG_ENTROPY_SOURCE_FAILED        -0x0009  /**< The entropy source failed. */
+/** Too many random requested in single call. */
+#define MBEDTLS_ERR_HMAC_DRBG_REQUEST_TOO_BIG              -0x0003
+/** Input too large (Entropy + additional). */
+#define MBEDTLS_ERR_HMAC_DRBG_INPUT_TOO_BIG                -0x0005
+/** Read/write error in file. */
+#define MBEDTLS_ERR_HMAC_DRBG_FILE_IO_ERROR                -0x0007
+/** The entropy source failed. */
+#define MBEDTLS_ERR_HMAC_DRBG_ENTROPY_SOURCE_FAILED        -0x0009
 
 /**
  * \name SECTION: Module settings
@@ -72,7 +74,7 @@
 #define MBEDTLS_HMAC_DRBG_MAX_SEED_INPUT    384     /**< Maximum size of (re)seed buffer */
 #endif
 
-/* \} name SECTION: Module settings */
+/** \} name SECTION: Module settings */
 
 #define MBEDTLS_HMAC_DRBG_PR_OFF   0   /**< No prediction resistance       */
 #define MBEDTLS_HMAC_DRBG_PR_ON    1   /**< Prediction resistance enabled  */
@@ -84,7 +86,7 @@ extern "C" {
 /**
  * HMAC_DRBG context.
  */
-typedef struct
+typedef struct mbedtls_hmac_drbg_context
 {
     /* Working state: the key K is not stored explicitly,
      * but is implied by the HMAC context */
@@ -103,6 +105,14 @@ typedef struct
     void *p_entropy;            /*!< context for the entropy function        */
 
 #if defined(MBEDTLS_THREADING_C)
+    /* Invariant: the mutex is initialized if and only if
+     * md_ctx->md_info != NULL. This means that the mutex is initialized
+     * during the initial seeding in mbedtls_hmac_drbg_seed() or
+     * mbedtls_hmac_drbg_seed_buf() and freed in mbedtls_ctr_drbg_free().
+     *
+     * Note that this invariant may change without notice. Do not rely on it
+     * and do not access the mutex directly in application code.
+     */
     mbedtls_threading_mutex_t mutex;
 #endif
 } mbedtls_hmac_drbg_context;
@@ -112,6 +122,10 @@ typedef struct
  *
  * This function makes the context ready for mbedtls_hmac_drbg_seed(),
  * mbedtls_hmac_drbg_seed_buf() or mbedtls_hmac_drbg_free().
+ *
+ * \note                The reseed interval is #MBEDTLS_HMAC_DRBG_RESEED_INTERVAL
+ *                      by default. Override this value by calling
+ *                      mbedtls_hmac_drbg_set_reseed_interval().
  *
  * \param ctx           HMAC_DRBG context to be initialized.
  */
@@ -148,7 +162,17 @@ void mbedtls_hmac_drbg_init( mbedtls_hmac_drbg_context *ctx );
  * \note                During the initial seeding, this function calls
  *                      the entropy source to obtain a nonce
  *                      whose length is half the entropy length.
- *
+ */
+#if defined(MBEDTLS_THREADING_C)
+/**
+ * \note                When Mbed TLS is built with threading support,
+ *                      after this function returns successfully,
+ *                      it is safe to call mbedtls_hmac_drbg_random()
+ *                      from multiple threads. Other operations, including
+ *                      reseeding, are not thread-safe.
+ */
+#endif /* MBEDTLS_THREADING_C */
+/**
  * \param ctx           HMAC_DRBG context to be seeded.
  * \param md_info       MD algorithm to use for HMAC_DRBG.
  * \param f_entropy     The entropy callback, taking as arguments the
@@ -183,11 +207,21 @@ int mbedtls_hmac_drbg_seed( mbedtls_hmac_drbg_context *ctx,
                     size_t len );
 
 /**
- * \brief               Initilisation of simpified HMAC_DRBG (never reseeds).
+ * \brief               Initialisation of simplified HMAC_DRBG (never reseeds).
  *
  * This function is meant for use in algorithms that need a pseudorandom
  * input such as deterministic ECDSA.
- *
+ */
+#if defined(MBEDTLS_THREADING_C)
+/**
+ * \note                When Mbed TLS is built with threading support,
+ *                      after this function returns successfully,
+ *                      it is safe to call mbedtls_hmac_drbg_random()
+ *                      from multiple threads. Other operations, including
+ *                      reseeding, are not thread-safe.
+ */
+#endif /* MBEDTLS_THREADING_C */
+/**
  * \param ctx           HMAC_DRBG context to be initialised.
  * \param md_info       MD algorithm to use for HMAC_DRBG.
  * \param data          Concatenation of the initial entropy string and
@@ -250,6 +284,11 @@ void mbedtls_hmac_drbg_set_reseed_interval( mbedtls_hmac_drbg_context *ctx,
 /**
  * \brief               This function updates the state of the HMAC_DRBG context.
  *
+ * \note                This function is not thread-safe. It is not safe
+ *                      to call this function if another thread might be
+ *                      concurrently obtaining random numbers from the same
+ *                      context or updating or reseeding the same context.
+ *
  * \param ctx           The HMAC_DRBG context.
  * \param additional    The data to update the state with.
  *                      If this is \c NULL, there is no additional data.
@@ -263,25 +302,13 @@ int mbedtls_hmac_drbg_update_ret( mbedtls_hmac_drbg_context *ctx,
                        const unsigned char *additional, size_t add_len );
 
 /**
- * \brief               HMAC_DRBG update state
- *
- * \warning             This function cannot report errors. You should use
- *                      mbedtls_hmac_drbg_update_ret() instead.
- *
- * \param ctx           HMAC_DRBG context
- * \param additional    Additional data to update state with, or NULL
- * \param add_len       Length of additional data, or 0
- *
- * \note                Additional data is optional, pass NULL and 0 as second
- *                      third argument if no additional data is being used.
- */
-void mbedtls_hmac_drbg_update( mbedtls_hmac_drbg_context *ctx,
-                               const unsigned char *additional,
-                               size_t add_len );
-
-/**
  * \brief               This function reseeds the HMAC_DRBG context, that is
  *                      extracts data from the entropy source.
+ *
+ * \note                This function is not thread-safe. It is not safe
+ *                      to call this function if another thread might be
+ *                      concurrently obtaining random numbers from the same
+ *                      context or updating or reseeding the same context.
  *
  * \param ctx           The HMAC_DRBG context.
  * \param additional    Additional data to add to the state.
@@ -307,6 +334,11 @@ int mbedtls_hmac_drbg_reseed( mbedtls_hmac_drbg_context *ctx,
  *
  * This function automatically reseeds if the reseed counter is exceeded
  * or prediction resistance is enabled.
+ *
+ * \note                This function is not thread-safe. It is not safe
+ *                      to call this function if another thread might be
+ *                      concurrently obtaining random numbers from the same
+ *                      context or updating or reseeding the same context.
  *
  * \param p_rng         The HMAC_DRBG context. This must be a pointer to a
  *                      #mbedtls_hmac_drbg_context structure.
@@ -337,7 +369,16 @@ int mbedtls_hmac_drbg_random_with_add( void *p_rng,
  *
  * This function automatically reseeds if the reseed counter is exceeded
  * or prediction resistance is enabled.
- *
+ */
+#if defined(MBEDTLS_THREADING_C)
+/**
+ * \note                When Mbed TLS is built with threading support,
+ *                      it is safe to call mbedtls_ctr_drbg_random()
+ *                      from multiple threads. Other operations, including
+ *                      reseeding, are not thread-safe.
+ */
+#endif /* MBEDTLS_THREADING_C */
+/**
  * \param p_rng         The HMAC_DRBG context. This must be a pointer to a
  *                      #mbedtls_hmac_drbg_context structure.
  * \param output        The buffer to fill.
@@ -353,11 +394,36 @@ int mbedtls_hmac_drbg_random_with_add( void *p_rng,
 int mbedtls_hmac_drbg_random( void *p_rng, unsigned char *output, size_t out_len );
 
 /**
- * \brief               Free an HMAC_DRBG context
+ * \brief               This function resets HMAC_DRBG context to the state immediately
+ *                      after initial call of mbedtls_hmac_drbg_init().
  *
  * \param ctx           The HMAC_DRBG context to free.
  */
 void mbedtls_hmac_drbg_free( mbedtls_hmac_drbg_context *ctx );
+
+#if ! defined(MBEDTLS_DEPRECATED_REMOVED)
+#if defined(MBEDTLS_DEPRECATED_WARNING)
+#define MBEDTLS_DEPRECATED    __attribute__((deprecated))
+#else
+#define MBEDTLS_DEPRECATED
+#endif
+/**
+ * \brief               This function updates the state of the HMAC_DRBG context.
+ *
+ * \deprecated          Superseded by mbedtls_hmac_drbg_update_ret()
+ *                      in 2.16.0.
+ *
+ * \param ctx           The HMAC_DRBG context.
+ * \param additional    The data to update the state with.
+ *                      If this is \c NULL, there is no additional data.
+ * \param add_len       Length of \p additional in bytes.
+ *                      Unused if \p additional is \c NULL.
+ */
+MBEDTLS_DEPRECATED void mbedtls_hmac_drbg_update(
+    mbedtls_hmac_drbg_context *ctx,
+    const unsigned char *additional, size_t add_len );
+#undef MBEDTLS_DEPRECATED
+#endif /* !MBEDTLS_DEPRECATED_REMOVED */
 
 #if defined(MBEDTLS_FS_IO)
 /**

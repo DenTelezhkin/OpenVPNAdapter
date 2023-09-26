@@ -139,8 +139,8 @@ bool OpenVPNClient::tun_builder_set_proxy_https(const std::string& host, int por
     return [this->delegate setProxyServer:proxyServer protocol:OpenVPNProxyServerProtocolHTTPS];
 }
 
-bool OpenVPNClient::tun_builder_set_block_ipv6(bool block_ipv6) {
-    return block_ipv6;
+bool OpenVPNClient::tun_builder_set_allow_family(int af, bool allow) {
+    return allow;
 }
 
 int OpenVPNClient::tun_builder_establish() {

@@ -1,7 +1,7 @@
 /*
  *  Diffie-Hellman-Merkle key exchange (prime generation)
  *
- *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
+ *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -15,8 +15,6 @@
  *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
- *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 
 #if !defined(MBEDTLS_CONFIG_FILE)
@@ -25,16 +23,7 @@
 #include MBEDTLS_CONFIG_FILE
 #endif
 
-#if defined(MBEDTLS_PLATFORM_C)
 #include "mbedtls/platform.h"
-#else
-#include <stdio.h>
-#include <stdlib.h>
-#define mbedtls_printf          printf
-#define mbedtls_time_t          time_t
-#define MBEDTLS_EXIT_SUCCESS    EXIT_SUCCESS
-#define MBEDTLS_EXIT_FAILURE    EXIT_FAILURE
-#endif /* MBEDTLS_PLATFORM_C */
 
 #if !defined(MBEDTLS_BIGNUM_C) || !defined(MBEDTLS_ENTROPY_C) ||   \
     !defined(MBEDTLS_FS_IO) || !defined(MBEDTLS_CTR_DRBG_C) ||     \
@@ -44,7 +33,7 @@ int main( void )
     mbedtls_printf("MBEDTLS_BIGNUM_C and/or MBEDTLS_ENTROPY_C and/or "
            "MBEDTLS_FS_IO and/or MBEDTLS_CTR_DRBG_C and/or "
            "MBEDTLS_GENPRIME not defined.\n");
-    return( 0 );
+    mbedtls_exit( 0 );
 }
 #else
 
@@ -57,7 +46,7 @@ int main( void )
 
 #define USAGE \
     "\n usage: dh_genprime param=<>...\n"                                   \
-    "\n acceprable parameters:\n"                                           \
+    "\n acceptable parameters:\n"                                           \
     "    bits=%%d           default: 2048\n"
 
 #define DFL_BITS    2048
@@ -67,6 +56,7 @@ int main( void )
  * so it is a generator of order Q (with P = 2*Q+1).
  */
 #define GENERATOR "4"
+
 
 int main( int argc, char **argv )
 {
@@ -89,7 +79,7 @@ int main( int argc, char **argv )
     {
     usage:
         mbedtls_printf( USAGE );
-        return( exit_code );
+        goto exit;
     }
 
     for( i = 1; i < argc; i++ )
@@ -156,7 +146,7 @@ int main( int argc, char **argv )
         goto exit;
     }
 
-    if( ( ret = mbedtls_mpi_is_prime( &Q, mbedtls_ctr_drbg_random, &ctr_drbg ) ) != 0 )
+    if( ( ret = mbedtls_mpi_is_prime_ext( &Q, 50, mbedtls_ctr_drbg_random, &ctr_drbg ) ) != 0 )
     {
         mbedtls_printf( " failed\n  ! mbedtls_mpi_is_prime returned %d\n\n", ret );
         goto exit;
@@ -171,8 +161,8 @@ int main( int argc, char **argv )
         goto exit;
     }
 
-    if( ( ret = mbedtls_mpi_write_file( "P = ", &P, 16, fout ) != 0 ) ||
-        ( ret = mbedtls_mpi_write_file( "G = ", &G, 16, fout ) != 0 ) )
+    if( ( ( ret = mbedtls_mpi_write_file( "P = ", &P, 16, fout ) ) != 0 ) ||
+        ( ( ret = mbedtls_mpi_write_file( "G = ", &G, 16, fout ) ) != 0 ) )
     {
         mbedtls_printf( " failed\n  ! mbedtls_mpi_write_file returned %d\n\n", ret );
         fclose( fout );
@@ -195,7 +185,7 @@ exit:
     fflush( stdout ); getchar();
 #endif
 
-    return( exit_code );
+    mbedtls_exit( exit_code );
 }
 #endif /* MBEDTLS_BIGNUM_C && MBEDTLS_ENTROPY_C && MBEDTLS_FS_IO &&
           MBEDTLS_CTR_DRBG_C && MBEDTLS_GENPRIME */
